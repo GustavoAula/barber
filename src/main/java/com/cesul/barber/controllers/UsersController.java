@@ -1,0 +1,95 @@
+package com.cesul.barber.controllers;
+
+import com.cesul.barber.dtos.UpdateUserAvatarDTO;
+import com.cesul.barber.dtos.UserCreationDTO;
+import com.cesul.barber.services.UsersService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.*;
+
+@RestController
+@RequestMapping("/users")
+@Tag(name = "Usuários", description = "Gerenciamento de usuários da barbearia")
+public class UsersController {
+
+    private final UsersService usersService;
+
+    public UsersController(UsersService usersService) {
+        this.usersService = usersService;
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Buscar usuário por ID", description = "Retorna as informações de um usuário específico com base no ID fornecido.")
+    public ResponseEntity<UserCreationDTO> getById(@PathVariable UUID id) {
+        Optional<UserCreationDTO> userOptional = this.usersService.findById(id);
+
+        if (userOptional.isPresent()) {
+            return ResponseEntity.ok(userOptional.get());
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @GetMapping
+    @Operation(summary = "Listar todos", description = "Retorna a lista de todos os usuários cadastrados.")
+    public ResponseEntity<List<UserCreationDTO>> getAll() {
+        return ResponseEntity.ok(this.usersService.findAll());
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Atualizar usuário", description = "Atualiza as informações de um usuário existente com base no ID fornecido.")
+    public ResponseEntity<UserCreationDTO> update(@PathVariable UUID id, @RequestBody UserCreationDTO updatedUser) {
+        Optional<UserCreationDTO> user = this.usersService.update(id, updatedUser);
+
+        if (user.isPresent()) {
+            return ResponseEntity.ok(user.get());
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @PostMapping
+    @Operation(summary = "Criar usuário", description = "Cria um novo usuário com as informações fornecidas.")
+    public ResponseEntity<UserCreationDTO> create(@RequestBody UserCreationDTO user) {
+        UserCreationDTO newUser = this.usersService.create(user);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(newUser);
+    }
+
+    @PatchMapping("/{id}/avatar")
+    @Operation(summary = "Atualizar avatar do usuário", description = "Atualiza a imagem de avatar de um usuário existente com base no ID fornecido.")
+    public ResponseEntity<UserCreationDTO> patchUser(@PathVariable UUID id,
+            @RequestBody UpdateUserAvatarDTO avatarDTO) {
+        if (avatarDTO == null || avatarDTO.getAvatarUrl() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Optional<UserCreationDTO> userOptional = this.usersService.updateAvatar(id, avatarDTO.getAvatarUrl());
+
+        if (userOptional.isPresent()) {
+            return ResponseEntity.ok(userOptional.get());
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Excluir usuário", description = "Exclui um usuário existente com base no ID fornecido.")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        boolean removed = this.usersService.delete(id);
+
+        if (removed) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
+
+    }
+
+    @DeleteMapping("/clear")
+    @Operation(summary = "Limpar todos os usuários", description = "Remove todos os usuários cadastrados.")
+    public ResponseEntity<Void> clearUsers() {
+        this.usersService.clear();
+        return ResponseEntity.noContent().build();
+    }
+}
