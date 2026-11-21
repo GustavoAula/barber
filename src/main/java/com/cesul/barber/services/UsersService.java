@@ -1,38 +1,46 @@
 package com.cesul.barber.services;
 
-import com.cesul.barber.dtos.UpdateUserAvatarDTO;
 import com.cesul.barber.dtos.UserCreationDTO;
+import com.cesul.barber.entities.User;
+import com.cesul.barber.mappers.UserMapper;
+import com.cesul.barber.repositories.UsersRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class UsersService {
 
-    private List<UserCreationDTO> users = new ArrayList<>();
+    private final UsersRepository usersRepository;
 
-    public UserCreationDTO create(UserCreationDTO user) {
-        user.setId(UUID.randomUUID());
-        this.users.add(user);
+    public UsersService(UsersRepository usersRepository) {
+        this.usersRepository = usersRepository;
+    }
 
-        return user;
+    public UserCreationDTO create(UserCreationDTO dto) {
+        User user = UserMapper.toEntity(dto);
+        User savedUser = this.usersRepository.save(user);
+        return UserMapper.toDTO(savedUser);
     }
 
     public List<UserCreationDTO> findAll() {
-        return this.users;
+        return this.usersRepository.findAll()
+                .stream()
+                .map(UserMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     public Optional<UserCreationDTO> findById(UUID id) {
-        return users.stream()
-                .filter(u -> u.getId().equals(id))
-                .findFirst();
+        return this.usersRepository.findById(id)
+                .map(UserMapper::toDTO);
     }
 
     public Optional<UserCreationDTO> update(UUID id, UserCreationDTO updatedUser) {
-        Optional<UserCreationDTO> userOptional = findById(id);
+        Optional<User> userOptional = this.usersRepository.findById(id);
 
         if (userOptional.isPresent()) {
-            UserCreationDTO user = userOptional.get();
+            User user = userOptional.get();
             if (updatedUser.getName() != null) {
                 user.setName(updatedUser.getName());
             }
@@ -42,53 +50,35 @@ public class UsersService {
             if (updatedUser.getAvatarUrl() != null) {
                 user.setAvatarUrl(updatedUser.getAvatarUrl());
             }
+            User savedUser = this.usersRepository.save(user);
+            return Optional.of(UserMapper.toDTO(savedUser));
         }
-        return userOptional;
-    }
-
-    public Optional<UserCreationDTO> update(UUID id, Map<String, String> request) {
-        Optional<UserCreationDTO> userOptional = findById(id);
-
-        if (userOptional.isPresent()) {
-            UserCreationDTO user = userOptional.get();
-            if (request.containsKey("name")) {
-                user.setName(request.get("name"));
-            }
-            if (request.containsKey("email")) {
-                user.setEmail(request.get("email"));
-            }
-            if (request.containsKey("avatarUrl")) {
-                user.setAvatarUrl(request.get("avatarUrl"));
-            }
-        }
-        return userOptional;
-    }
-
-    public Optional<UserCreationDTO> updateAvatar(UUID id, UpdateUserAvatarDTO avatarDTO) {
-        if (avatarDTO == null) {
-            return Optional.empty();
-        }
-        return updateAvatar(id, avatarDTO.getAvatarUrl());
+        return Optional.empty();
     }
 
     public Optional<UserCreationDTO> updateAvatar(UUID id, String avatarUrl) {
-        Optional<UserCreationDTO> userOptional = findById(id);
+        Optional<User> userOptional = this.usersRepository.findById(id);
 
         if (userOptional.isPresent()) {
-            UserCreationDTO user = userOptional.get();
+            User user = userOptional.get();
             if (avatarUrl != null) {
                 user.setAvatarUrl(avatarUrl);
             }
+            User savedUser = this.usersRepository.save(user);
+            return Optional.of(UserMapper.toDTO(savedUser));
         }
-        return userOptional;
+        return Optional.empty();
     }
 
     public boolean delete(UUID id) {
-        return users.removeIf(u -> u.getId().equals(id));
+        if (this.usersRepository.existsById(id)) {
+            this.usersRepository.deleteById(id);
+            return true;
+        }
+        return false;
     }
 
-    public boolean clear() {
-        this.users.clear();
-        return true;
+    public void clear() {
+        this.usersRepository.deleteAll();
     }
 }
