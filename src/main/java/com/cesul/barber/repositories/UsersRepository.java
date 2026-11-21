@@ -1,0 +1,12 @@
+package com.cesul.barber.repositories;
+
+import com.cesul.barber.entities.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.UUID;
+
+@Repository
+public interface UsersRepository extends JpaRepository<User, UUID> {
+
+}
